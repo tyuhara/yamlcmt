@@ -169,11 +169,6 @@ func (c *CompareCmd) Run(cli *CLI) error {
 		}
 	}
 
-	// Exit with non-zero if differences found
-	if result.HasDifferences() {
-		os.Exit(1)
-	}
-
 	return nil
 }
 
