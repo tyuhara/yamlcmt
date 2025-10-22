@@ -92,10 +92,6 @@ func (c *CompareCmd) Run(cli *CLI) error {
 			if err != nil {
 				return fmt.Errorf("error getting changed files: %w", err)
 			}
-			if len(targetFiles) == 0 {
-				fmt.Println("No YAML files changed")
-				return nil
-			}
 			fmt.Fprintf(os.Stderr, "Found %d changed YAML file(s)\n", len(targetFiles))
 		} else {
 			// File specified → use that file

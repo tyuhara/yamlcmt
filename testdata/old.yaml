@@ -7,7 +7,7 @@ metadata:
   annotations:
     configmanagement.gke.io/cluster-selector: development
   creationTimestamp: null
-  name: user4-is-edit-in
+  name: user4-is-edit
   namespace: example
 roleRef:
   apiGroup: rbac.authorization.k8s.io
@@ -24,7 +24,7 @@ metadata:
   annotations:
     configmanagement.gke.io/cluster-selector: development
   creationTimestamp: null
-  name: user1-is-edit-in
+  name: user1-is-edit
   namespace: example
 roleRef:
   apiGroup: rbac.authorization.k8s.io
@@ -41,7 +41,7 @@ metadata:
   annotations:
     configmanagement.gke.io/cluster-selector: development
   creationTimestamp: null
-  name: user2-is-edit-in
+  name: user2-is-edit
   namespace: example
 roleRef:
   apiGroup: rbac.authorization.k8s.io
