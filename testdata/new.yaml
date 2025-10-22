@@ -1,0 +1,53 @@
+# THIS IS GENERATED. DO NOT EDIT BY HAND
+# https://github.com/kouzoh/microservices-kubernetes-kit/tree/master/cmd/generate-config
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  annotations:
+    configmanagement.gke.io/cluster-selector: development
+  creationTimestamp: null
+  name: user1-is-edit
+  namespace: example
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: edit
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: User
+  name: user1@example.com
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  annotations:
+    configmanagement.gke.io/cluster-selector: development
+  creationTimestamp: null
+  name: user2-is-edit
+  namespace: example
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: view
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: User
+  name: user2@example.com
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  annotations:
+    configmanagement.gke.io/cluster-selector: development
+  creationTimestamp: null
+  name: user3-is-edit
+  namespace: example
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: edit
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: User
+  name: user3@example.com

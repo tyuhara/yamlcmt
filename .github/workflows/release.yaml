@@ -1,0 +1,74 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.21'
+
+      - name: Get the version
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Build binaries
+        run: |
+          # Linux amd64
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-X main.version=${{ steps.get_version.outputs.VERSION }} -X main.commit=${{ github.sha }} -X main.date=$(date -u +%Y-%m-%dT%H:%M:%SZ)" -o yamlcmt-linux-amd64 ./cmd/yamlcmt
+
+          # Linux arm64
+          CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -ldflags "-X main.version=${{ steps.get_version.outputs.VERSION }} -X main.commit=${{ github.sha }} -X main.date=$(date -u +%Y-%m-%dT%H:%M:%SZ)" -o yamlcmt-linux-arm64 ./cmd/yamlcmt
+
+          # macOS amd64 (Intel)
+          CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -ldflags "-X main.version=${{ steps.get_version.outputs.VERSION }} -X main.commit=${{ github.sha }} -X main.date=$(date -u +%Y-%m-%dT%H:%M:%SZ)" -o yamlcmt-darwin-amd64 ./cmd/yamlcmt
+
+          # macOS arm64 (Apple Silicon)
+          CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -ldflags "-X main.version=${{ steps.get_version.outputs.VERSION }} -X main.commit=${{ github.sha }} -X main.date=$(date -u +%Y-%m-%dT%H:%M:%SZ)" -o yamlcmt-darwin-arm64 ./cmd/yamlcmt
+
+      - name: Create tar.gz archives
+        run: |
+          # Linux amd64
+          tar czf yamlcmt-${{ steps.get_version.outputs.VERSION }}-linux-amd64.tar.gz --transform='s/yamlcmt-linux-amd64/yamlcmt/' yamlcmt-linux-amd64 README.md INSTALL.md CONFIG_GUIDE.md yamlcmt.yaml.example
+
+          # Linux arm64
+          tar czf yamlcmt-${{ steps.get_version.outputs.VERSION }}-linux-arm64.tar.gz --transform='s/yamlcmt-linux-arm64/yamlcmt/' yamlcmt-linux-arm64 README.md INSTALL.md CONFIG_GUIDE.md yamlcmt.yaml.example
+
+          # macOS amd64
+          tar czf yamlcmt-${{ steps.get_version.outputs.VERSION }}-darwin-amd64.tar.gz --transform='s/yamlcmt-darwin-amd64/yamlcmt/' yamlcmt-darwin-amd64 README.md INSTALL.md CONFIG_GUIDE.md yamlcmt.yaml.example
+
+          # macOS arm64
+          tar czf yamlcmt-${{ steps.get_version.outputs.VERSION }}-darwin-arm64.tar.gz --transform='s/yamlcmt-darwin-arm64/yamlcmt/' yamlcmt-darwin-arm64 README.md INSTALL.md CONFIG_GUIDE.md yamlcmt.yaml.example
+
+      - name: Generate checksums
+        run: |
+          sha256sum yamlcmt-${{ steps.get_version.outputs.VERSION }}-*.tar.gz > checksums.txt
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            yamlcmt-${{ steps.get_version.outputs.VERSION }}-linux-amd64.tar.gz
+            yamlcmt-${{ steps.get_version.outputs.VERSION }}-linux-arm64.tar.gz
+            yamlcmt-${{ steps.get_version.outputs.VERSION }}-darwin-amd64.tar.gz
+            yamlcmt-${{ steps.get_version.outputs.VERSION }}-darwin-arm64.tar.gz
+            checksums.txt
+          body: "## yamlcmt ${{ steps.get_version.outputs.VERSION }}\n\n### Installation\n\nDownload the appropriate binary for your platform and extract it.\n\n### Checksums\n\nVerify your download using the checksums.txt file."
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

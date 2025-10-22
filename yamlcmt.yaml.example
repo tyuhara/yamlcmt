@@ -1,0 +1,98 @@
+repo_owner: tyuhara
+repo_name: yamlcmt
+
+yamlcmt:
+  compare:
+    # Template for GitHub PR comment
+    # Available variables:
+    #   .Summary      - "X added, Y deleted, Z modified"
+    #   .Details      - Full diff output (when using -v)
+    #   .HasChanges   - true if any changes exist
+    #   .Added        - Number of added documents
+    #   .Deleted      - Number of deleted documents
+    #   .Modified     - Number of modified documents
+    #   .Link         - CI build link (passed via --link)
+    #   .Vars         - Custom variables (passed via --var)
+    template: |
+      ## {{if .Vars.title}}{{.Vars.title}}{{end}}
+
+      {{if .Link}}[CI link]({{.Link}}){{end}}
+
+      {{if .Vars.message}}{{.Vars.message}}{{end}}
+
+      {{if gt .Deleted 0}}
+      ⚠️ **WARNING**: This PR deletes {{.Deleted}} resource(s). Please review carefully.
+      {{end}}
+
+      ### Summary
+      ```
+      {{.Summary}}
+      ```
+
+      {{if gt (len .AddedList) 0}}
+      * Add
+      {{range .AddedList}}  * {{.}}
+      {{end}}
+      {{end}}
+
+      {{if gt (len .DeletedList) 0}}
+      * Delete
+      {{range .DeletedList}}  * {{.}}
+      {{end}}
+      {{end}}
+
+      {{if gt (len .ModifiedList) 0}}
+      * Modify
+      {{range .ModifiedList}}  * {{.}}
+      {{end}}
+      {{end}}
+
+      {{if .HasChanges}}
+
+      <details><summary>Details (Click me)</summary>
+
+      ```
+      {{.Details}}
+      ```
+
+      </details>
+      {{else}}
+      ✅ No changes detected in YAML files.
+      {{end}}
+
+      ---
+
+      To retry this job, please comment `/retry` on the Pull Request.
+
+    # Label to add when additions are detected (cumulative)
+    # This label will be added if there are ANY additions (added > 0)
+    when_has_additions:
+      label: "config-sync/add"
+
+    # Label to add when deletions are detected (cumulative)
+    # This label will be added if there are ANY deletions (deleted > 0)
+    when_has_deletions:
+      label: "config-sync/destroy"
+
+    # Label to add when modifications are detected (cumulative)
+    # This label will be added if there are ANY modifications (modified > 0)
+    when_has_modifications:
+      label: "config-sync/changes"
+
+    # Label to add when no changes are detected
+    # This is the only exclusive label (only added when added=0, deleted=0, modified=0)
+    when_no_changes:
+      label: "config-sync/no-changes"
+
+    # Disable posting comments (only label)
+    disable_comment: false
+
+    # Disable adding labels (only comment)
+    disable_label: false
+
+# Note: Labels are cumulative!
+# Example: If a PR has 1 addition, 1 deletion, and 1 modification:
+#   - config-sync/add will be added
+#   - config-sync/destroy will be added
+#   - config-sync/changes will be added
+# All three labels will be present on the PR.
