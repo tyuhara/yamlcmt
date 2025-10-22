@@ -2,13 +2,16 @@ package github
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"os"
-	"os/exec"
 	"sort"
+	"strings"
 	"text/template"
 
+	"github.com/google/go-github/v66/github"
 	"github.com/tyuhara/yamlcmt/internal/diff"
+	"golang.org/x/oauth2"
 )
 
 // TemplateData represents data available in templates
@@ -26,56 +29,116 @@ type TemplateData struct {
 	Vars         map[string]interface{}
 }
 
-// PostComment posts a comment to a GitHub PR
+// getClient creates a GitHub client with the token from environment variable
+func getClient(ctx context.Context) (*github.Client, error) {
+	token := os.Getenv("GITHUB_TOKEN")
+	if token == "" {
+		return nil, fmt.Errorf("GITHUB_TOKEN environment variable is not set")
+	}
+
+	ts := oauth2.StaticTokenSource(
+		&oauth2.Token{AccessToken: token},
+	)
+	tc := oauth2.NewClient(ctx, ts)
+	return github.NewClient(tc), nil
+}
+
+// parseRepo splits "owner/repo" into owner and repo
+func parseRepo(repo string) (string, string, error) {
+	parts := strings.Split(repo, "/")
+	if len(parts) != 2 {
+		return "", "", fmt.Errorf("invalid repository format: %s (expected: owner/repo)", repo)
+	}
+	return parts[0], parts[1], nil
+}
+
+// PostComment posts a comment to a GitHub PR using go-github
 func PostComment(repo string, prNumber int, body string) error {
-	cmd := exec.Command("gh", "pr", "comment", fmt.Sprintf("%d", prNumber),
-		"--repo", repo,
-		"--body", body)
-	
-	output, err := cmd.CombinedOutput()
+	ctx := context.Background()
+	client, err := getClient(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to post comment: %w\nOutput: %s", err, string(output))
+		return fmt.Errorf("failed to create GitHub client: %w", err)
+	}
+
+	owner, repoName, err := parseRepo(repo)
+	if err != nil {
+		return err
+	}
+
+	comment := &github.IssueComment{
+		Body: github.String(body),
+	}
+
+	_, _, err = client.Issues.CreateComment(ctx, owner, repoName, prNumber, comment)
+	if err != nil {
+		return fmt.Errorf("failed to post comment: %w", err)
 	}
 
 	fmt.Fprintf(os.Stderr, "✓ Posted GitHub comment\n")
 	return nil
 }
 
-// AddLabel adds a label to a GitHub PR
+// AddLabel adds a label to a GitHub PR using go-github
 func AddLabel(repo string, prNumber int, label string) error {
 	if label == "" {
 		return nil
 	}
 
-	cmd := exec.Command("gh", "pr", "edit", fmt.Sprintf("%d", prNumber),
-		"--repo", repo,
-		"--add-label", label)
-	
-	output, err := cmd.CombinedOutput()
+	ctx := context.Background()
+	client, err := getClient(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to add label: %w\nOutput: %s", err, string(output))
+		return fmt.Errorf("failed to create GitHub client: %w", err)
+	}
+
+	owner, repoName, err := parseRepo(repo)
+	if err != nil {
+		return err
+	}
+
+	_, _, err = client.Issues.AddLabelsToIssue(ctx, owner, repoName, prNumber, []string{label})
+	if err != nil {
+		return fmt.Errorf("failed to add label: %w", err)
 	}
 
 	fmt.Fprintf(os.Stderr, "✓ Applied GitHub label: %s\n", label)
 	return nil
 }
 
-// AddLabels adds multiple labels to a GitHub PR
+// AddLabels adds multiple labels to a GitHub PR using go-github
 func AddLabels(repo string, prNumber int, labels []string) error {
 	if len(labels) == 0 {
 		return nil
 	}
 
+	// Filter out empty labels
+	validLabels := make([]string, 0, len(labels))
 	for _, label := range labels {
-		if label == "" {
-			continue
-		}
-
-		if err := AddLabel(repo, prNumber, label); err != nil {
-			return err
+		if label != "" {
+			validLabels = append(validLabels, label)
 		}
 	}
 
+	if len(validLabels) == 0 {
+		return nil
+	}
+
+	ctx := context.Background()
+	client, err := getClient(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to create GitHub client: %w", err)
+	}
+
+	owner, repoName, err := parseRepo(repo)
+	if err != nil {
+		return err
+	}
+
+	_, _, err = client.Issues.AddLabelsToIssue(ctx, owner, repoName, prNumber, validLabels)
+	if err != nil {
+		return fmt.Errorf("failed to add labels: %w", err)
+	}
+
+	fmt.Fprintf(os.Stderr, "✓ Applied GitHub labels: %s\n", strings.Join(validLabels, ", "))
 	return nil
 }
 

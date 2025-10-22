@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"os"
-	"os/exec"
 
 	"github.com/alecthomas/kong"
 	"github.com/fatih/color"
@@ -270,20 +269,6 @@ func (c *CompareCmd) applyGithubLabel(result *diff.Result) error {
 		label = c.ChangesLabel
 	}
 
-	// Apply label using gh CLI
-	return applyGithubLabelWithGH(c.GithubRepo, c.GithubPR, label)
-}
-
-func applyGithubLabelWithGH(repo string, prNumber int, label string) error {
-	cmd := exec.Command("gh", "pr", "edit", fmt.Sprintf("%d", prNumber),
-		"--repo", repo,
-		"--add-label", label)
-	
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("failed to add label: %w\nOutput: %s", err, string(output))
-	}
-
-	fmt.Fprintf(os.Stderr, "✓ Applied GitHub label: %s\n", label)
-	return nil
+	// Apply label using go-github
+	return github.AddLabel(c.GithubRepo, c.GithubPR, label)
 }
